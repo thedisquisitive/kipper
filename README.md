@@ -1,2 +1,2 @@
 # kipper
-Central server based recipe database with inventory tracking and grocery shop generation.
+Central server based recipe database with meal planning, inventory tracking, and grocery list generation.
