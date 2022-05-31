@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title> Kipper </title>
+
+{% endblock %}
+
+{% block body %}
+{% if show_alert == True %}
+    {% if error_message == "BADCOURSE" %}
+        <script>
+            alert("Course name must be Breakfast, Lunch or Dinner!");
+        </script>
+    {% elif error_message == "TOOHIGHINGREDIENT" %}
+        <script>
+            alert("Unknown ingredient encountered: Ingredient not within range!");
+        </script>
+    {% elif error_message == "OUTOFRANGERECIPEID" %}
+        <script>
+            alert("Recipe ID is out of range!");
+        </script>
+    {% endif %}
+{% endif %}
+<h1> Kipper </h1>
+<h2> Recipes </h2>
+<table>
+    <tr>
+        <th> Recipe Number </th>
+        <th> Recipe </th>
+        <th> Course </th> 
+        <th> Ingredients </th>
+    </tr>
+    <tr>
+        {% for recipe in recipes %}
+            <tr>
+                <td> {{ recipe.id }} </td>
+                <td> {{ recipe.name }} </td>
+                <td> {{ recipe.course }}</td>
+                <td style="white-space: pre;"> 
+                    {%- for ingredient in recipe.ingredientIDs %}
+    {{ingredient}}
+                    {%- endfor -%}
+                </td>
+            </tr>
+        {% endfor %}
+    </tr>
+</table>
+
+<form method="POST">
+    {% if pagetype == "ADD_RECIPE" %}
+        <input name="RecipeNameText" placeholder="Recipe Name">
+        <input name="CourseNameText" placeholder="Course (Breakfast/Lunch/Dinner)">
+        <input name="IngredientList" placeholder="List of Ingredients (seperated by comma)">
+        <input type="submit" value="Add Recipe">
+    {% elif pagetype == "DEL_RECIPE" %}
+        <input name="RecipeIDText" placeholder="Recipe ID">
+        <input type="submit" value="Delete Recipe">
+    {% endif %}
+</form>
+
+
+{% endblock %}

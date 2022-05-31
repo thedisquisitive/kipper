@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>    
+<ul>
+    <li name="add_recipe_link"> <a href="/addrecipe"> Add Recipe </a></li>
+    <li name="add_ingredient_link"> <a href="/addingred"> Add Ingredient </a></li>
+    <li name="del_recipe_link"> <a href="/delrecipe"> Delete Recipe </a> </li>
+    <li name="del_ingredient_link"> <a href="/delingred"> Delete Ingredient </a> </li>  
+</ul>
+    {% block body %}{% endblock %}
+</body>
+</html>
