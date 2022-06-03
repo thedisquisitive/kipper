@@ -1,6 +1,7 @@
 from dataclasses import asdict, dataclass, field
 from typing import List, Dict, Any
 from enum import IntEnum
+from pymongo.collection import Collection as pymongoCollection
 
 import pymongo
 
@@ -49,13 +50,11 @@ class RecipeIngredient:
     recipeID: int
     ingreidentID: int
     
-def insert_recipe(recipe_name: str, course: CourseEnum, ingredient_IDs: List[int], *, table: pymongo.collection.Collection = kipper_table_Recipe,
-                ingredient_table: pymongo.collection.Collection = kipper_table_Ingredient) -> None:
-    recipe_ID = 0 if (last_entry := table.find_one(sort=[("recipeID", -1)])) is None else last_entry["recipeID"]+1
-
+def insert_recipe(recipe_name: str, course: CourseEnum, ingredient_IDs: List[int], *, table: pymongoCollection = kipper_table_Recipe,
+                ingredient_table: pymongoCollection = kipper_table_Ingredient) -> None:
+    recipe_ID = get_current_recipe_id()
     recipe = RecipeClass(recipe_ID, recipe_name, course, ingredient_IDs)
     document = asdict(recipe)
-
     table.insert_one(document)
     
     for ingredient_ID in ingredient_IDs:
@@ -64,56 +63,75 @@ def insert_recipe(recipe_name: str, course: CourseEnum, ingredient_IDs: List[int
         ingredient_table.update_one({"ingredientID": ingredient_ID}, {"$set": ingredient}, upsert=False)
         ingredient = ingredient_table.find_one({"ingredientID": ingredient_ID})
 
-def insert_ingredient(ingredient_name: str, *, table: pymongo.collection.Collection = kipper_table_Ingredient) -> None:
-    ingredient_ID = 0 if (last_entry := table.find_one(sort=[("ingredientID", -1)])) is None else last_entry["ingredientID"]+1
-
+def insert_ingredient(ingredient_name: str, *, table: pymongoCollection = kipper_table_Ingredient) -> None:
+    ingredient_ID = get_current_ingredient_id()
     ingredient = IngredientClass(ingredient_ID, ingredient_name)
     document = asdict(ingredient)
-
     table.insert_one(document)
 
-def get_ingredient_id(ingredient_name: str, *, table: pymongo.collection.Collection = kipper_table_Ingredient) -> int:
+def get_ingredient_id(ingredient_name: str, *, table: pymongoCollection = kipper_table_Ingredient) -> int:
     ingredient = table.find_one({"ingredientName": ingredient_name})
-    return ingredient["ingredientID"]
+    return None if ingredient is None else ingredient["ingredientID"]
 
-def get_ingredient_name_from_id(ingredient_ID: int, *, table: pymongo.collection.Collection = kipper_table_Ingredient) -> str:
+def get_ingredient_name_from_id(ingredient_ID: int, *, table: pymongoCollection = kipper_table_Ingredient) -> str:
     ingredient = table.find_one({"ingredientID": ingredient_ID})
-    if ingredient is None:
-        return "NULL INGREDIENT!!"
-    return ingredient["ingredientName"]
+    return "MISSING INGREDIENT" if ingredient is None else ingredient["ingredientName"]
 
-def delete_recipe_by_id(recipe_id: int, *, table: pymongo.collection.Collection = kipper_table_Recipe) -> None:
+def get_recipe_name_from_id(recipe_ID: int, *, table: pymongoCollection = kipper_table_Recipe) -> str:
+    recipe = table.find_one({"recipeID": recipe_ID})
+    return "MISSING RECIPE" if recipe is None else recipe["recipeName"]
+
+def delete_recipe_by_id(recipe_id: int, *, table: pymongoCollection = kipper_table_Recipe,
+    ingredient_table: pymongoCollection = kipper_table_Ingredient) -> None:
     document = {"recipeID": recipe_id}
+    ingredients = ingredient_table.find()
+    for ingredient in ingredients:
+            if recipe_id in ingredient['usedInTheseRecipes']:
+                ingredient['usedInTheseRecipes'].remove(recipe_id)
+                ingredient_table.update_one({"ingredientID": ingredient['ingredientID']}, {"$set": ingredient})
+
     table.delete_one(document)
 
-def ingredient_used_in(ingredient_id: int, *, table: pymongo.collection.Collection = kipper_table_Ingredient) -> None:
+def delete_ingredient_by_id(ingredient_id: int, *, table: pymongoCollection = kipper_table_Ingredient) -> None:
+    document = {"ingredientID": ingredient_id}
+    table.delete_one(document)
+
+def ingredient_used_in(ingredient_id: int, *, table: pymongoCollection = kipper_table_Ingredient) -> None:
     ingredient = table.find_one({"ingredientID": ingredient_id})
     for recipe_id in ingredient['usedInTheseRecipes']:
         print(f"RecipeID: {recipe_id}")
 
-def get_all_ingredients(*, table: pymongo.collection.Collection = kipper_table_Ingredient) -> List[Dict[int, str]]:
+def get_all_ingredients(*, table: pymongoCollection = kipper_table_Ingredient) -> List[Dict[int, str]]:
     ingredients = []
     for ingredient in table.find({}):
-        ingredients.append({ingredient['ingredientID']: ingredient['ingredientName']})
+        ingredients.append({'id': ingredient['ingredientID'], 'name': ingredient['ingredientName'], 'usedin': ingredient['usedInTheseRecipes']})
 
     return ingredients
 
-def get_all_recipes(*, table: pymongo.collection.Collection = kipper_table_Recipe) -> List[Dict[str, Any]]:
+def get_all_recipes(*, table: pymongoCollection = kipper_table_Recipe) -> List[Dict[str, Any]]:
     recipes = []
     for recipe in table.find({}):
         recipes.append({'id': recipe["recipeID"], 'name': recipe["recipeName"], 'ingredientIDs': recipe['ingredientIDs'], 'course': CourseEnum(recipe['course']).name})
 
     return recipes
 
-def get_current_recipe_id(*, table: pymongo.collection.Collection = kipper_table_Recipe) -> int:
+def get_current_ingredient_id(*, table: pymongoCollection = kipper_table_Ingredient) -> int:
+    ingredient_id = 0 if (last_entry := table.find_one(sort=[("ingredientID", -1)])) is None else last_entry["ingredientID"]+1
+    return ingredient_id
+
+def get_smallest_ingredient_id(*, table: pymongoCollection = kipper_table_Ingredient) -> int:
+    ingredient_id = 0 if (last_entry := table.find_one(sort=[("ingredientID", 1)])) is None else last_entry["IngredientID"]
+    return ingredient_id
+
+def get_current_recipe_id(*, table: pymongoCollection = kipper_table_Recipe) -> int:
     recipe_ID = 0 if (last_entry := table.find_one(sort=[("recipeID", -1)])) is None else last_entry["recipeID"]+1
     return recipe_ID
 
-def get_smallest_recipe_id(*, table: pymongo.collection.Collection = kipper_table_Recipe) -> int:
+def get_smallest_recipe_id(*, table: pymongoCollection = kipper_table_Recipe) -> int:
     recipe_ID = 0 if (first_entry := table.find_one(sort=[("recipeID", 1)])) is None else first_entry["recipeID"]
     return recipe_ID
 
-def drop_database(*, db_name: str = "KipperDatabase")-> None:
+def drop_database(*, db_name: str = "KipperDatabase") -> None:
     kipper_client.drop_database(db_name)
 
 #recipeIngredient_document   = {"recipeID": None, "ingredientID": None, "usedInTheseRecipes": []}

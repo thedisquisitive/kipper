@@ -38,9 +38,20 @@ ul
   {
     color: #fff;
     text-decoration: none;
+    -webkit-user-select: none;  
+    -moz-user-select: none;     
+    -ms-user-select: none;      
+    user-select: none;          
   }
 
   li a:hover
   {
       color: #aaa;
+  }
+
+  #dynamicTable
+  {
+    white-space: pre; 
+    padding-right: 2em; 
+    padding-left: 2em;
   }

@@ -7,42 +7,66 @@
 
 {% block body %}
 {% if show_alert == True %}
+    <!-- I could probably do this part better, will refactor soon -->
     {% if error_message == "BADCOURSE" %}
-        <script>
-            alert("Course name must be Breakfast, Lunch or Dinner!");
-        </script>
+        <script> alert("Invalid course encountered: course name must be Breakfast, Lunch or Dinner"); </script>
     {% elif error_message == "TOOHIGHINGREDIENT" %}
-        <script>
-            alert("Unknown ingredient encountered: Ingredient not within range!");
-        </script>
+        <script> alert("Invalid ingredient encountered: Ingredient not within range"); </script>
     {% elif error_message == "OUTOFRANGERECIPEID" %}
-        <script>
-            alert("Recipe ID is out of range!");
-        </script>
+        <script> alert("Invalid recipe encountered: Recipe ID is out of range");</script>  
+    {% elif error_message == "INVALIDINGREDIENT" %}
+        <script> alert("Invalid ingredient encountered: Please enter a valid ingredient"); </script>
+    {% elif error_message == "INVALIDRECIPEID" %}
+        <script> alert("Invalid recipe encountered: Please enter a valid recipe ID"); </script>
     {% endif %}
+    <script> window.location.href = window.location.href; </script>
 {% endif %}
 <h1> Kipper </h1>
-<h2> Recipes </h2>
+{% if pagetype in ["ADD_RECIPE", "DEL_RECIPE"] %}
+    <h2> Recipes </h2>
+{% elif pagetype in ["ADD_INGRED", "DEL_INGRED"] %}
+    <h2> Ingredients </h2>
+{% endif %}
 <table>
     <tr>
-        <th> Recipe Number </th>
-        <th> Recipe </th>
-        <th> Course </th> 
-        <th> Ingredients </th>
+        {% if pagetype in ["ADD_RECIPE", "DEL_RECIPE"] %}
+            <th> Recipe Number </th>
+            <th> Recipe </th>
+            <th> Course </th> 
+            <th> Ingredients </th>
+        {% elif pagetype in ["ADD_INGRED", "DEL_INGRED"] %}
+            <th> Ingredient ID </th>
+            <th> Ingredient Name </th>
+            <th> Ingredient Used In </th>
+        {% endif %}
     </tr>
     <tr>
-        {% for recipe in recipes %}
-            <tr>
-                <td> {{ recipe.id }} </td>
-                <td> {{ recipe.name }} </td>
-                <td> {{ recipe.course }}</td>
-                <td style="white-space: pre;"> 
-                    {%- for ingredient in recipe.ingredientIDs %}
-    {{ingredient}}
-                    {%- endfor -%}
-                </td>
-            </tr>
-        {% endfor %}
+        {% if pagetype in ["ADD_RECIPE", "DEL_RECIPE"] %}
+            {% for recipe in recipes %}
+                <tr>
+                    <td> {{ recipe.id }} </td>
+                    <td> {{ recipe.name }} </td>
+                    <td> {{ recipe.course }}</td>
+                    <td id="dynamicTable"> 
+                        {%- for ingredient in recipe.ingredientIDs %}
+{{ ingredient }}
+                        {%- endfor -%}
+                    </td>
+                </tr>
+            {% endfor %}
+        {% elif pagetype in ["ADD_INGRED", "DEL_INGRED"] %}
+            {% for ingredient in ingredients %}
+                <tr>
+                    <td> {{ ingredient.id }} </td>
+                    <td> {{ ingredient.name }} </td> 
+                    <td id="dynamicTable">
+                        {%- for used in ingredient.usedin %} 
+{{ used }}
+                        {%- endfor -%}
+                    </td> 
+                </tr>
+            {% endfor %}
+        {% endif %}
     </tr>
 </table>
 
@@ -55,6 +79,12 @@
     {% elif pagetype == "DEL_RECIPE" %}
         <input name="RecipeIDText" placeholder="Recipe ID">
         <input type="submit" value="Delete Recipe">
+    {% elif pagetype == "ADD_INGRED" %}
+        <input name="IngredientNameText" placeholder="Ingredient Name">
+        <input type="submit" value="Add Ingredient">
+    {% elif pagetype == "DEL_INGRED" %}
+        <input name="IngredientIDText" placeholder="Ingredient ID">
+        <input type="submit" value="Delete Ingredient"> 
     {% endif %}
 </form>
 
